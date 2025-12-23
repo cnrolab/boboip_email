@@ -1,18 +1,32 @@
 const nodemailer = require('nodemailer');
 
-// 自建邮局 SMTP 配置
-const transporter = nodemailer.createTransport({
-  host: process.env.SMTP_HOST || 'mail.boboip.com',
-  port: parseInt(process.env.SMTP_PORT) || 465,
-  secure: true,
-  auth: {
-    user: process.env.SMTP_USER,
-    pass: process.env.SMTP_PASS,
-  },
-  tls: {
-    rejectUnauthorized: false  // 自签名证书
-  }
-});
+// 邮箱配置列表（从环境变量读取）
+// 格式：SMTP_账号名_HOST, SMTP_账号名_PORT, SMTP_账号名_USER, SMTP_账号名_PASS
+function getMailConfig(accountName) {
+  const prefix = accountName ? `SMTP_${accountName.toUpperCase()}_` : 'SMTP_';
+  return {
+    host: process.env[`${prefix}HOST`] || process.env.SMTP_HOST || 'mail.boboip.com',
+    port: parseInt(process.env[`${prefix}PORT`] || process.env.SMTP_PORT) || 465,
+    user: process.env[`${prefix}USER`] || process.env.SMTP_USER,
+    pass: process.env[`${prefix}PASS`] || process.env.SMTP_PASS,
+  };
+}
+
+// 创建邮件传输器
+function createTransporter(config) {
+  return nodemailer.createTransport({
+    host: config.host,
+    port: config.port,
+    secure: config.port === 465,
+    auth: {
+      user: config.user,
+      pass: config.pass,
+    },
+    tls: {
+      rejectUnauthorized: false
+    }
+  });
+}
 
 module.exports = async (req, res) => {
   // 设置 CORS
@@ -35,14 +49,25 @@ module.exports = async (req, res) => {
   }
 
   try {
-    const { to, subject, html } = req.body;
+    const { to, subject, html, account, from } = req.body;
 
     if (!to || !subject || !html) {
-      return res.status(400).json({ success: false, message: 'Missing required fields' });
+      return res.status(400).json({ success: false, message: 'Missing required fields: to, subject, html' });
     }
 
+    // 获取邮箱配置（可指定账号名）
+    const config = getMailConfig(account);
+    
+    if (!config.user || !config.pass) {
+      return res.status(400).json({ 
+        success: false, 
+        message: account ? `Account "${account}" not configured` : 'Default SMTP not configured'
+      });
+    }
+
+    const transporter = createTransporter(config);
     const fromName = process.env.FROM_NAME || 'BoboIP';
-    const fromEmail = process.env.SMTP_USER;
+    const fromEmail = from || config.user;
 
     await transporter.sendMail({
       from: `${fromName} <${fromEmail}>`,
@@ -51,7 +76,11 @@ module.exports = async (req, res) => {
       html: html,
     });
 
-    return res.status(200).json({ success: true, message: 'Email sent' });
+    return res.status(200).json({ 
+      success: true, 
+      message: 'Email sent',
+      from: fromEmail
+    });
   } catch (error) {
     console.error('Email error:', error);
     return res.status(500).json({ success: false, message: error.message });
