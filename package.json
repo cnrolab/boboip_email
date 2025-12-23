@@ -1,0 +1,11 @@
+{
+  "name": "email-service",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "dev": "node api/send.js"
+  },
+  "dependencies": {
+    "nodemailer": "^6.9.7"
+  }
+}
