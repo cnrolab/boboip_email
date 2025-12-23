@@ -1,14 +1,17 @@
 const nodemailer = require('nodemailer');
 
-// Zoho 邮箱 SMTP 配置
+// 自建邮局 SMTP 配置
 const transporter = nodemailer.createTransport({
-  host: 'smtp.zoho.com',
-  port: 465,
+  host: process.env.SMTP_HOST || 'mail.boboip.com',
+  port: parseInt(process.env.SMTP_PORT) || 465,
   secure: true,
   auth: {
-    user: process.env.SMTP_USER,     // Zoho邮箱地址
-    pass: process.env.SMTP_PASS,     // Zoho邮箱密码或应用专用密码
+    user: process.env.SMTP_USER,
+    pass: process.env.SMTP_PASS,
   },
+  tls: {
+    rejectUnauthorized: false  // 自签名证书
+  }
 });
 
 module.exports = async (req, res) => {
