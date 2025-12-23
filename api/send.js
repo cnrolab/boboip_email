@@ -1,14 +1,14 @@
 const nodemailer = require('nodemailer');
 
 // 邮箱配置列表（从环境变量读取）
-// 格式：SMTP_账号名_HOST, SMTP_账号名_PORT, SMTP_账号名_USER, SMTP_账号名_PASS
+// 格式：SMTP_账号名_HOST, SMTP_账号名_USER（端口和密码共用）
 function getMailConfig(accountName) {
-  const prefix = accountName ? `SMTP_${accountName.toUpperCase()}_` : 'SMTP_';
+  const prefix = accountName ? `SMTP_${accountName.toUpperCase()}_` : 'SMTP_BOBOIP_';
   return {
-    host: process.env[`${prefix}HOST`] || process.env.SMTP_HOST || 'mail.boboip.com',
-    port: parseInt(process.env[`${prefix}PORT`] || process.env.SMTP_PORT) || 465,
+    host: process.env[`${prefix}HOST`] || process.env.SMTP_HOST,
+    port: parseInt(process.env.SMTP_PORT) || 465,
     user: process.env[`${prefix}USER`] || process.env.SMTP_USER,
-    pass: process.env[`${prefix}PASS`] || process.env.SMTP_PASS,
+    pass: process.env.SMTP_PASS,
   };
 }
 
